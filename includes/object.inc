@@ -36,6 +36,29 @@ class IslandoraCompoundBatchObject extends IslandoraBatchObject {
       $this->ingestObjDatastream();
     }
 
+    // add other datastreams
+    $otherfiles = scandir($dir_name);
+    foreach ($otherfiles as $otherfile) {
+      $otherinfo = pathinfo($otherfile);
+      $fullpath = $dir_name . '/' . $otherfile;
+      if (!in_array($otherinfo['filename'], array('.', '..', 'OBJ', 'MODS')) && $otherfile !== 'structure.xml') {
+        $dsid = $otherinfo['filename'];
+        if (preg_match('/^[A-Z_]+$/', $dsid) !== 1) {
+          continue;
+        }
+        if ($this[$dsid]) {
+          continue;
+        }
+        $ds = $this->constructDatastream($dsid, 'M');
+        $ds->label = "$dsid Datastream";
+        // Must infer mimetype from file.
+        $mime_detector = new MimeDetect();
+        $ds->mimetype = $mime_detector->getMimetype($fullpath);
+        $ds->setContentFromFile($fullpath, FALSE);
+        $this->ingestDatastream($ds);
+      }
+    }
+
     module_load_include('inc', 'islandora_compound_batch', 'includes/utilities');
     $cb_utilities = new Utilities();
 
